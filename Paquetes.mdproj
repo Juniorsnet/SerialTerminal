@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ItemType>PackagingProject</ItemType>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{8244D65B-B5BB-406B-A147-CA55854385D3}</ProjectGuid>
+    <Packages>
+      <Packages>
+        <Package name="Linux binarios">
+          <Builder targetFile="..\..\..\VmShare\SerialTerminal.zip" platform="Linux" configuration="Debug|x86" ctype="BinariesZipPackageBuilder">
+            <ChildEntries>
+              <SolutionItemReference path="SerialTerminal\SerialTerminal.csproj" />
+            </ChildEntries>
+            <RootEntry path="SerialTerminal.sln" id=":root:" />
+          </Builder>
+        </Package>
+      </Packages>
+    </Packages>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,73 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SerialTerminal", "SerialTerminal\SerialTerminal.csproj", "{0F1DC28E-C288-417B-AD41-DB57C9BF28A7}"
+EndProject
+Project("{9344BDBB-3E7F-41FC-A0DD-8665D75EE146}") = "Paquetes", "Paquetes.mdproj", "{8244D65B-B5BB-406B-A147-CA55854385D3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0F1DC28E-C288-417B-AD41-DB57C9BF28A7}.Debug|x86.ActiveCfg = Debug|x86
+		{0F1DC28E-C288-417B-AD41-DB57C9BF28A7}.Debug|x86.Build.0 = Debug|x86
+		{0F1DC28E-C288-417B-AD41-DB57C9BF28A7}.Release|x86.ActiveCfg = Release|x86
+		{0F1DC28E-C288-417B-AD41-DB57C9BF28A7}.Release|x86.Build.0 = Release|x86
+		{8244D65B-B5BB-406B-A147-CA55854385D3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8244D65B-B5BB-406B-A147-CA55854385D3}.Release|x86.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.TextStylePolicy = $1
+		$1.FileWidth = 120
+		$1.TabsToSpaces = False
+		$1.EolMarker = Unix
+		$1.inheritsSet = VisualStudio
+		$1.inheritsScope = text/plain
+		$1.scope = text/x-csharp
+		$0.CSharpFormattingPolicy = $2
+		$2.IndentSwitchBody = True
+		$2.BeforeMethodDeclarationParentheses = False
+		$2.BeforeMethodCallParentheses = False
+		$2.BeforeConstructorDeclarationParentheses = False
+		$2.NewLineBeforeConstructorInitializerColon = NewLine
+		$2.NewLineAfterConstructorInitializerColon = SameLine
+		$2.BeforeDelegateDeclarationParentheses = False
+		$2.NewParentheses = False
+		$2.SpacesBeforeBrackets = False
+		$2.inheritsSet = Mono
+		$2.inheritsScope = text/x-csharp
+		$2.scope = text/x-csharp
+		$0.TextStylePolicy = $3
+		$3.inheritsSet = Mono
+		$3.inheritsScope = text/plain
+		$3.scope = text/plain
+		$0.TextStylePolicy = $4
+		$4.inheritsSet = Mono
+		$4.inheritsScope = text/plain
+		$4.scope = application/glade+xml
+		$0.XmlFormattingPolicy = $5
+		$5.inheritsSet = Mono
+		$5.inheritsScope = application/xml
+		$5.scope = application/glade+xml
+		$0.TextStylePolicy = $6
+		$6.inheritsSet = Mono
+		$6.inheritsScope = text/plain
+		$6.scope = application/xml
+		$0.XmlFormattingPolicy = $7
+		$7.inheritsSet = Mono
+		$7.inheritsScope = application/xml
+		$7.scope = application/xml
+		$0.TextStylePolicy = $8
+		$8.inheritsSet = Mono
+		$8.inheritsScope = text/plain
+		$8.scope = application/config+xml
+		$0.XmlFormattingPolicy = $9
+		$9.inheritsSet = Mono
+		$9.inheritsScope = application/xml
+		$9.scope = application/config+xml
+		StartupItem = SerialTerminal\SerialTerminal.csproj
+	EndGlobalSection
+EndGlobal
