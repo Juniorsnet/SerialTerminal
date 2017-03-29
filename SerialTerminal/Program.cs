@@ -126,17 +126,15 @@ namespace SerialTerminal
 				Console.WriteLine(margs.RetVal);
 			};
 			Gui.MainWindow.ShowAll();
-			try{
-				Console.WriteLine(AppDomain.CurrentDomain);
-				ActivationContext ac = AppDomain.CurrentDomain.ActivationContext;
-				Console.WriteLine(DumpObject(ac));
-				ApplicationIdentity ai = ac.Identity;
-				Console.WriteLine(DumpObject(ai));
-			}catch{
-				Console.WriteLine("Err Application identity");
+			///Feo, ver si se descarta el isolated storage
+			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
+			   System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
+			   System.Environment.OSVersion.Platform == PlatformID.Win32S) {
+				MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Assembly, null, null);
+			}else{
+				ApplicationIdentity AppIdent = new ApplicationIdentity("SerialTerminal");
+				MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User,AppIdent);
 			}
-			ApplicationIdentity AppIdent = new ApplicationIdentity("SerialTerminal");
-			MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User|IsolatedStorageScope.Application,AppIdent);
 			Console.WriteLine("Storage Creado, espacio disponible : {0} Mb", MyStorage.AvailableFreeSpace / 1000 * 1000);
 			if(!MyStorage.DirectoryExists("Config")){
 				MyStorage.CreateDirectory("Config");
