@@ -12,6 +12,7 @@ using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Linq;
 using System.Threading;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace SerialTerminal
 {
@@ -37,6 +38,10 @@ namespace SerialTerminal
 			public UInt32 Handshaking;
 		}
 
+		public static string DumpObject(object obj)
+		{
+			return JsonConvert.SerializeObject(obj);
+		}
 		void OneFunctionToRuleThemAll (GLib.UnhandledExceptionArgs args)
 		{
 			MessageDialog md = new MessageDialog(null, DialogFlags.Modal, MessageType.Error, ButtonsType.Close, false, "{0}",((System.Exception)args.ExceptionObject).Message+((System.Exception)args.ExceptionObject).StackTrace+((System.Exception)args.ExceptionObject).InnerException);
@@ -121,8 +126,17 @@ namespace SerialTerminal
 				Console.WriteLine(margs.RetVal);
 			};
 			Gui.MainWindow.ShowAll();
-
-			MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User|IsolatedStorageScope.Assembly|IsolatedStorageScope.Domain,null,null);
+			try{
+				Console.WriteLine(AppDomain.CurrentDomain);
+				ActivationContext ac = AppDomain.CurrentDomain.ActivationContext;
+				Console.WriteLine(DumpObject(ac));
+				ApplicationIdentity ai = ac.Identity;
+				Console.WriteLine(DumpObject(ai));
+			}catch{
+				Console.WriteLine("Err Application identity");
+			}
+			ApplicationIdentity AppIdent = new ApplicationIdentity("SerialTerminal");
+			MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User|IsolatedStorageScope.Application,AppIdent);
 			Console.WriteLine("Storage Creado, espacio disponible : {0} Mb", MyStorage.AvailableFreeSpace / 1000 * 1000);
 			if(!MyStorage.DirectoryExists("Config")){
 				MyStorage.CreateDirectory("Config");
