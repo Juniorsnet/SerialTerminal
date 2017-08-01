@@ -55,9 +55,9 @@ namespace SerialTerminal
 		{
 			TextIter start;
 			TextIter end;
-			if (OriginalTextView.Buffer.CharCount > 10000000) {
+			if (OriginalTextView.Buffer.CharCount > 1024*1024*1024) {
 				start = OriginalTextView.Buffer.StartIter;
-				end = OriginalTextView.Buffer.GetIterAtOffset(10000000 - 100);
+				end = OriginalTextView.Buffer.GetIterAtOffset((1024*1024*1024) - 100);
 				OriginalTextView.Buffer.Delete(ref start, ref end);
 			}
 		}

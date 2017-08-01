@@ -126,7 +126,12 @@ namespace SerialTerminal
 				Console.WriteLine(margs.RetVal);
 			};
 			Gui.MainWindow.ShowAll();
-			///Feo, ver si se descarta el isolated storage
+			string[] EnumNames = Enum.GetNames(typeof(Environment.SpecialFolder));
+			Array Datos = Enum.GetValues(typeof(Environment.SpecialFolder));
+			for (int h = 0; h < EnumNames.Length; h++) {
+				Console.WriteLine("Def: {0}, Loc: {1}",EnumNames[h],Environment.GetFolderPath((Environment.SpecialFolder)Datos.GetValue(h)));
+			}
+			///Feo, ver si se descarta el isolated storage, usar carpeta de usuario.
 			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
 			   System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
 			   System.Environment.OSVersion.Platform == PlatformID.Win32S) {
@@ -208,26 +213,9 @@ namespace SerialTerminal
 			Gtk.Application.Run();
 		}
 
-		void Gui_TbSaveLog_Toggled (object sender, EventArgs e)
+		void PonerEncabezado()
 		{
-			if (((Gtk.ToggleToolButton)sender).Active) {
-				Gui.DialogGuardarLog.ShowAll();
-				int ret = Gui.DialogGuardarLog.Run();
-				if (ret == (int)Gtk.ResponseType.Ok) {
-					UserLogFile = new StreamWriter(Gui.EntryRutaLog.Text, !Gui.ChkBtSobreescribir.Active,Encoding.GetEncoding(1252)) {
-						AutoFlush = true,
-					};
-					UserLogFormat = (SerialLogFormat)Gui.CbFormatoLog.Active;
-					if (Gui.ChkBtHistorico.Active) {
-						UserLogFile.Write(Gui.SerialTextView.Buffer.Text);
-						UserLogFormat = (SerialLogFormat)(Gui.CbFormatoLog.Active=0);
-					}
-					if (UserLogFormat == SerialLogFormat.CSV) {
-						UserLogFile.WriteLine("\nIniciando log {0} Timestamp;SerialData;", DateTime.Now);
-					} else if (UserLogFormat == SerialLogFormat.HTML) {
-						if (Gui.ChkBtSobreescribir.Active) {
-							///Ponemos encabezado
-							UserLogFile.WriteLine(string.Format(@"<!DOCTYPE html>
+			UserLogFile.WriteLine(string.Format(@"<!DOCTYPE html>
 							<html>
 							<head>
 							<script>
@@ -268,44 +256,73 @@ namespace SerialTerminal
 							    <th>Timestamp</th>
 							    <th>Serial Data</th>
 							  </tr>",DateTime.Now));
-
+		}
+		void Gui_TbSaveLog_Toggled (object sender, EventArgs e)
+		{
+			if (((Gtk.ToggleToolButton)sender).Active) {
+				Gui.DialogGuardarLog.ShowAll();
+				int ret = Gui.DialogGuardarLog.Run();
+				if (ret == (int)Gtk.ResponseType.Ok) {
+					UserLogFile = new StreamWriter(Gui.EntryRutaLog.Text, !Gui.ChkBtSobreescribir.Active, Encoding.GetEncoding(1252)) {
+						AutoFlush = true,
+					};
+					UserLogFormat = (SerialLogFormat)Gui.CbFormatoLog.Active;
+					if (Gui.ChkBtHistorico.Active) {
+						UserLogFile.Write(Gui.SerialTextView.Buffer.Text);
+						UserLogFormat = (SerialLogFormat)(Gui.CbFormatoLog.Active = 0);
+					}
+					if (UserLogFormat == SerialLogFormat.CSV) {
+						UserLogFile.WriteLine("\nIniciando log {0} Timestamp;SerialData;", DateTime.Now);
+					} else if (UserLogFormat == SerialLogFormat.HTML) {
+						if (Gui.ChkBtSobreescribir.Active) {
+							///Ponemos encabezado
+							PonerEncabezado();
 						} else {
 							UserLogFile.Close();
 							FileStream fs = new FileStream(Gui.EntryRutaLog.Text, FileMode.Open, FileAccess.ReadWrite);
-							fs.Seek(-128, SeekOrigin.End);
-							byte[] buf = new byte[128];
-							fs.Read(buf, 0, buf.Length);
-							string s = Encoding.GetEncoding(1252).GetString(buf);
-							if (s.Contains("</body></html>")) {
-								int index = s.IndexOf("</body></html>");
-								fs.Seek(-128 + index, SeekOrigin.End);
-								fs.SetLength(fs.Position);
-							} else {
-							}
-							fs.Close();
-							UserLogFile = new StreamWriter(Gui.EntryRutaLog.Text, !Gui.ChkBtSobreescribir.Active,Encoding.GetEncoding(1252)) {
-								AutoFlush = true,
-							};
-							UserLogFile.WriteLine(string.Format(@"<table style=""width:100%"">
+							if (fs.Length > 128) {
+								fs.Seek(-128, SeekOrigin.End);
+								byte[] buf = new byte[128];
+								fs.Read(buf, 0, buf.Length);
+								string s = Encoding.GetEncoding(1252).GetString(buf);
+								if (s.Contains("</body></html>")) {
+									int index = s.IndexOf("</body></html>");
+									fs.Seek(-128 + index, SeekOrigin.End);
+									fs.SetLength(fs.Position);
+								} else {
+								}
+								fs.Close();
+								UserLogFile = new StreamWriter(Gui.EntryRutaLog.Text, !Gui.ChkBtSobreescribir.Active, Encoding.GetEncoding(1252)) {
+									AutoFlush = true,
+								};
+								UserLogFile.WriteLine(string.Format(@"<table style=""width:100%"">
 							  <caption>Iniciando Log {0}</caption>
 							  <tr id=""Cab"">
 							    <th>Timestamp</th>
 							    <th>Serial Data</th>
 							  </tr>", DateTime.Now));
+							} else {
+								fs.Close();
+								UserLogFile = new StreamWriter(Gui.EntryRutaLog.Text, !Gui.ChkBtSobreescribir.Active, Encoding.GetEncoding(1252)) {
+									AutoFlush = true,
+								};
+								PonerEncabezado();
+							}
 						}
+					} else {
+						((Gtk.ToggleToolButton)sender).Active = false;
 					}
 				} else {
+					if (UserLogFile != null) {
+						if (UserLogFormat == SerialLogFormat.HTML) {
+							UserLogFile.Write("\n</table></body></html>");
+						}
+						UserLogFile.Close();
+						UserLogFile = null;
+					}
 					((Gtk.ToggleToolButton)sender).Active = false;
 				}
 				Gui.DialogGuardarLog.Hide();
-			} else {
-				if (UserLogFile != null) {
-					if (UserLogFormat == SerialLogFormat.HTML) {
-						UserLogFile.Write("\n</table></body></html>");
-					}
-					UserLogFile.Close();
-					UserLogFile = null;
-				}
 			}
 		}
 
