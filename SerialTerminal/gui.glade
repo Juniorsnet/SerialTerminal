@@ -10,6 +10,128 @@
     <property name="label" translatable="yes">Guardar</property>
     <property name="stock_id">gtk-save</property>
   </object>
+  <object class="GtkDialog" id="DialogConfigApp">
+    <property name="can_focus">False</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes">Seleccione Tipografía</property>
+    <property name="type_hint">dialog</property>
+    <property name="has_separator">True</property>
+    <child internal-child="vbox">
+      <object class="GtkVBox" id="dialog-vbox6">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkVBox" id="vbox8">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="spacing">2</property>
+            <child>
+              <object class="GtkLabel" id="label188">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label" translatable="yes">Seleccione consola</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFontButton" id="FontButtonConsola">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+                <property name="font_name">monospace 10</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label189">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="label" translatable="yes">Seleccione programa</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFontButton" id="FontButtonProgram">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <object class="GtkHButtonBox" id="dialog-action_area6">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkButton" id="BtOk">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="BtCancelar">
+                <property name="label" translatable="yes">Cancelar</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_action_appearance">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-5">BtOk</action-widget>
+      <action-widget response="-6">BtCancelar</action-widget>
+    </action-widgets>
+  </object>
   <object class="GtkDialog" id="DialogGuardarLog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
@@ -574,17 +696,14 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="model">ListaDePuertos</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
-                      <attributes>
-                        <attribute name="text">0</attribute>
-                      </attributes>
-                    </child>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">0</property>
                   </object>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
@@ -597,13 +716,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="model">ListaBaudrates</property>
-                    <property name="active">0</property>
-                    <child>
-                      <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                      <attributes>
-                        <attribute name="text">0</attribute>
-                      </attributes>
-                    </child>
+                    <property name="has_entry">True</property>
+                    <property name="entry_text_column">0</property>
                   </object>
                 </child>
               </object>
@@ -665,6 +779,20 @@
                 <property name="homogeneous">True</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkToolButton" id="ToolButtonConfigurar">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">Ajustes</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-execute</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -698,6 +826,76 @@
                     <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkHBox" id="HbSearchBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkEntry" id="EntrySearchBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">●</property>
+                        <property name="primary_icon_stock">gtk-find</property>
+                        <property name="primary_icon_activatable">False</property>
+                        <property name="secondary_icon_activatable">False</property>
+                        <property name="primary_icon_sensitive">True</property>
+                        <property name="secondary_icon_sensitive">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="BtSearchBackward">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="image">gtk-go-back-img</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="BtSearchForward">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="image">gtk-go-forward-img</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="BtHideSearchBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="image">gtk-remove-img</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -769,7 +967,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
@@ -864,5 +1062,20 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkImage" id="gtk-go-back-img">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-go-back</property>
+  </object>
+  <object class="GtkImage" id="gtk-go-forward-img">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-go-forward</property>
+  </object>
+  <object class="GtkImage" id="gtk-remove-img">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-remove</property>
   </object>
 </interface>

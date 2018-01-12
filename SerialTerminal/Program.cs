@@ -2,7 +2,6 @@ using System;
 using Gtk;
 using Glade;
 using System.IO.Ports;
-using System.IO.IsolatedStorage;
 using System.Collections;
 using System.IO;
 using System.Xml.Serialization;
@@ -23,14 +22,19 @@ namespace SerialTerminal
 			CSV,
 			HTML
 		};
+		public struct AppConfigStruct
+		{
+			public PortConfigStruct PortConfig;
+			public string ProgramFontConfig;
+			public string ConsoleFontConfig;
+			public List<string> SendComands;
+		};
+		AppConfigStruct AppConfig;
 		SerialLogFormat UserLogFormat;
 		TextViewMejorado ReceiveSerialTextView;
-		IsolatedStorageFile MyStorage;
 		StreamWriter SerialLogFile, UserLogFile;
-		PortConfigStruct PortConfig;
-		public List<string> SendComands;
+		ProgramConfigClass ProgramConfig;
 
-		[Serializable()]
 		public struct PortConfigStruct
 		{
 			public string PortName;
@@ -65,6 +69,14 @@ namespace SerialTerminal
 					CheckSystem.MessageBox(System.IntPtr.Zero, "No se ha detectado GTK Sharp, este programa no funcionará sino tiene GTK Sharp instalado", "Error", 0);
 				}
 			}
+			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
+				System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
+				System.Environment.OSVersion.Platform == PlatformID.Win32S) {
+				Gtk.Rc.Parse(string.Format("{0}/theme/gtkrc",System.IO.Directory.GetCurrentDirectory()));
+			}
+			#region SeteoDirectorioTrabajo
+			ProgramConfig = new ProgramConfigClass();
+			#endregion
 			Gtk.Application.Init();
 			GLib.ExceptionManager.UnhandledException+= OneFunctionToRuleThemAll;
 			System.IO.StreamReader sr = new System.IO.StreamReader(System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("SerialTerminal.gui.glade"));
@@ -75,6 +87,28 @@ namespace SerialTerminal
 			ReceiveSerialTextView= new TextViewMejorado(Gui.SerialTextView);
 			ReceiveSerialTextView.AppendTextTag("Serial Terminal\n",ReceiveSerialTextView.SubRayado,ReceiveSerialTextView.Cursiva);
 			ReceiveSerialTextView.AppendTextTag("Esto es un terminal serial, escrito en C# usando GTK#");
+			#region Load Config
+			ProgramConfig.LoadProgramConfig(ref AppConfig);
+			if(AppConfig.ConsoleFontConfig==null){
+				AppConfig.ConsoleFontConfig=Gui.FontButtonConsola.FontName=ReceiveSerialTextView.OriginalTextView.PangoContext.FontDescription.ToString();
+			}else{
+				Gui.FontButtonConsola.FontName=AppConfig.ConsoleFontConfig;
+				ReceiveSerialTextView.OriginalTextView.ModifyFont(Pango.FontDescription.FromString(Gui.FontButtonConsola.FontName));
+			}
+			if(AppConfig.ProgramFontConfig==null){
+				AppConfig.ProgramFontConfig=Gui.FontButtonProgram.FontName=Gtk.Rc.GetStyle(Gui.MainWindow).FontDescription.ToString();
+			}else{
+				Gui.FontButtonProgram.FontName=AppConfig.ProgramFontConfig;
+				Gtk.Rc.ParseString(string.Format(@"style ""font""
+								{{
+								font_name = ""{0}""
+								}}
+								widget_class ""*"" style ""font""
+								gtk-font-name = ""{0}""", Gui.FontButtonProgram.FontName));
+				Gtk.Rc.ResetStyles(Settings.Default);
+			}
+			#endregion
+			Gui.ToolButtonConfigurar.Clicked+= Gui_ToolButtonConfigurar_Clicked;
 			Gui.ComboSelecionaPuerto.Changed+= ComboSelecionaPuertoHandleChange;
 			Gui.ToolBarOpenSerialPort.Clicked+= OpenSerialPortClicked;
 			Gui.ToolBarCloseSerialPort.Clicked+= CloseSerialPortClicked;
@@ -86,6 +120,14 @@ namespace SerialTerminal
 			Gui.BtEnviarSerialPort.Clicked+= Gui_BtEnviarSerialPort_Clicked;
 			Gui.CbTextoEnviado.KeyPressEvent+= Gui_CbTextoEnviado_KeyPressEvent;
 			Gui.BtGuardarComando.Clicked += Gui_BtGuardarComando_Clicked;
+			Gui.MainWindow.KeyPressEvent+= Gui_MainWindow_KeyPressEvent;
+			Gui.EntrySearchBox.Changed+= Gui_EntrySearchBox_Changed;
+			Gui.BtSearchForward.Clicked+= Gui_BtSearchForward_Clicked;
+			Gui.BtSearchBackward.Clicked+= Gui_BtSearchBackward_Clicked;
+			Gui.BtHideSearchBox.Clicked+= delegate {
+				LimpiaResaltadoBusqueda();
+				Gui.HbSearchBox.HideAll();
+			};
 			Gui.ActionGuardarProyecto.Activated+= (object sender, EventArgs e) => {
 				Gtk.ResponseType ret = 0;
 				Gtk.FileChooserDialog fch = new Gtk.FileChooserDialog("Escoja donde guardar el archivo", Gui.MainWindow, Gtk.FileChooserAction.Save, "OK", Gtk.ResponseType.Ok, "Cancelar", Gtk.ResponseType.Cancel);
@@ -125,92 +167,176 @@ namespace SerialTerminal
 			Gui.scrolledwindow4.MapEvent+= (object o, MapEventArgs margs) => {
 				Console.WriteLine(margs.RetVal);
 			};
-			Gui.MainWindow.ShowAll();
 			string[] EnumNames = Enum.GetNames(typeof(Environment.SpecialFolder));
 			Array Datos = Enum.GetValues(typeof(Environment.SpecialFolder));
 			for (int h = 0; h < EnumNames.Length; h++) {
-				Console.WriteLine("Def: {0}, Loc: {1}",EnumNames[h],Environment.GetFolderPath((Environment.SpecialFolder)Datos.GetValue(h)));
-			}
-			///Feo, ver si se descarta el isolated storage, usar carpeta de usuario.
-			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
-			   System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
-			   System.Environment.OSVersion.Platform == PlatformID.Win32S) {
-				MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Assembly, null, null);
-			}else{
-				ApplicationIdentity AppIdent = new ApplicationIdentity("SerialTerminal");
-				MyStorage = IsolatedStorageFile.GetStore(IsolatedStorageScope.User,AppIdent);
-			}
-			Console.WriteLine("Storage Creado, espacio disponible : {0} Mb", MyStorage.AvailableFreeSpace / 1000 * 1000);
-			if(!MyStorage.DirectoryExists("Config")){
-				MyStorage.CreateDirectory("Config");
+				//Console.WriteLine("Def: {0}, Loc: {1}",EnumNames[h],Environment.GetFolderPath((Environment.SpecialFolder)Datos.GetValue(h)));
 			}
 			#region AppConfig
-			IsolatedStorageFileStream Ifs = null;
-			if (!MyStorage.FileExists("Config/PortConfig")) {
-				Ifs = MyStorage.CreateFile("Config/PortConfig");
-			} else {
-				Ifs = new IsolatedStorageFileStream("Config/PortConfig", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
+			Utiles.ListaPuertos(Gui.ComboSelecionaPuerto);
+			int i = Utiles.GetIndexOfComboBoxByString(Gui.ComboSelecionaPuerto,AppConfig.PortConfig.PortName);
+			if(i!=-1){
+				Gui.ComboSelecionaPuerto.Active=i;
 			}
-
-			StreamReader PortConfigFileReader = new StreamReader(Ifs);
-			XmlSerializer ser = new XmlSerializer(typeof(PortConfigStruct));
-			try{
-				Utiles.ListaPuertos(Gui.ComboSelecionaPuerto);
-				PortConfig = (PortConfigStruct)ser.Deserialize(PortConfigFileReader);
-				int i = Utiles.GetIndexOfComboBoxByString(Gui.ComboSelecionaPuerto,PortConfig.PortName);
-				if(i!=-1){
-					Gui.ComboSelecionaPuerto.Active=i;
-				}
-				i = Utiles.GetIndexOfComboBoxByString(Gui.ComboBaudRate,PortConfig.BaudRate.ToString());
-				if(i!=-1){
-					Gui.ComboBaudRate.Active=i;
-				}
-				Gui.ComboHandShaking.Active=(int)PortConfig.Handshaking;
-			}catch(Exception){
-				if (Ifs.Length>0) {
-					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Error al cargar el arhivo", "Al parecer el archivo de configuracion esta dañado");
-				} else {
-					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Error al cargar el arhivo", "Al parecer el archivo de configuracion esta vacio");
-				}
-			}finally{
-				PortConfigFileReader.Close();
+			i = Utiles.GetIndexOfComboBoxByString(Gui.ComboBaudRate,AppConfig.PortConfig.BaudRate.ToString());
+			if(i!=-1){
+				Gui.ComboBaudRate.Active=i;
 			}
+			Gui.ComboHandShaking.Active=(int)AppConfig.PortConfig.Handshaking;
 			#endregion
 
 			#region AppLog
-			if (!MyStorage.FileExists("Config/SendSerial")) {
-				SendComands = new List<string>();
+			if(AppConfig.SendComands==null || AppConfig.SendComands.Count==0){
+				AppConfig.SendComands = new List<string>();
 			} else {
-				try{
-					ser = new XmlSerializer(typeof(List<string>));
-					Ifs = new IsolatedStorageFileStream("Config/SendSerial", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
-					SendComands = (List<string>)ser.Deserialize(Ifs);
-					foreach(string s in SendComands){
-						Gui.CbTextoEnviado.AppendText(s);
-					}
-					Ifs.Close();
-				}catch(Exception ex){
-					Console.WriteLine(ex);
-					SendComands = new List<string>();
+				foreach(string s in AppConfig.SendComands){
+					Gui.CbTextoEnviado.AppendText(s);
 				}
 			}
 
-			if (!MyStorage.FileExists("Config/SerialLog")) {
-				SerialLogFile = new StreamWriter(MyStorage.CreateFile("Config/SerialLog"));
+			if (!System.IO.File.Exists("SerialLog")) {
+				SerialLogFile = new StreamWriter(System.IO.File.Create("SerialLog"));
 			} else {
-				Ifs = new IsolatedStorageFileStream("Config/SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
+				System.IO.FileStream Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 				StreamReader SerialLogReader = new StreamReader(Ifs);
 				Gui.SerialTextView.Buffer.Clear();
 				Utiles.AppendTextToBuffer(Gui.SerialTextView,SerialLogReader.ReadToEnd());
 				SerialLogReader.Close();
-				Ifs = new IsolatedStorageFileStream("Config/SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
+				Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 				Ifs.Seek(0, SeekOrigin.End);
 				SerialLogFile = new StreamWriter(Ifs) {
 					AutoFlush = true
 				};
 			}
 			#endregion
+			/*
+			IDictionary vars = Environment.GetEnvironmentVariables();
+			foreach (DictionaryEntry e in vars) {
+				Console.WriteLine("{0} : {1}", e.Key, e.Value);
+			}*/
+			Gui.MainWindow.ShowAll();
+			Gui.HbSearchBox.HideAll();
 			Gtk.Application.Run();
+		}
+
+		void Gui_ToolButtonConfigurar_Clicked (object sender, EventArgs e)
+		{
+			Gtk.ResponseType ret = (Gtk.ResponseType)Gui.DialogConfigApp.Run();
+			if (ret == ResponseType.Ok) {
+				Console.WriteLine("Letra para el programa: {0}\nLetra para la consola: {1}", Gui.FontButtonProgram.FontName, Gui.FontButtonConsola.FontName);
+				if (Gtk.Rc.GetStyle(Gui.MainWindow).FontDescription.ToString() != Gui.FontButtonProgram.FontName) {
+					Gtk.Rc.ParseString(string.Format(@"style ""font""
+								{{
+								font_name = ""{0}""
+								}}
+								widget_class ""*"" style ""font""
+								gtk-font-name = ""{0}""", Gui.FontButtonProgram.FontName));
+					Gtk.Rc.ResetStyles(Settings.Default);
+					AppConfig.ProgramFontConfig = Gui.FontButtonProgram.FontName;
+				}
+				if (ReceiveSerialTextView.OriginalTextView.PangoContext.FontDescription.ToString() != Gui.FontButtonConsola.FontName) {
+					ReceiveSerialTextView.OriginalTextView.ModifyFont(Pango.FontDescription.FromString(Gui.FontButtonConsola.FontName));
+					AppConfig.ConsoleFontConfig = Gui.FontButtonConsola.FontName;
+				}
+			}
+			Gui.DialogConfigApp.Hide();
+		}
+
+		void Gui_EntrySearchBox_Changed (object sender, EventArgs e)
+		{
+			Gtk.Entry entry = (Gtk.Entry)sender;
+			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;
+			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.EndIter;
+			if (entry.Text.Length == 0) {
+				return;
+			}
+			Gtk.TextIter MatchStart;
+			Gtk.TextIter MatchEnd;
+			LimpiaResaltadoBusqueda();
+			if (StartIter.ForwardSearch(entry.Text, TextSearchFlags.TextOnly, out MatchStart, out MatchEnd, EndIter)) {
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.ApplyTag(ReceiveSerialTextView.Resaltado, MatchStart, MatchEnd);
+				if (ReceiveSerialTextView.BeginMarkLastSearch.Buffer == null) {///condicion inicial
+					ReceiveSerialTextView.OriginalTextView.Buffer.AddMark(ReceiveSerialTextView.BeginMarkLastSearch, MatchStart);
+				} else {
+					ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.BeginMarkLastSearch, MatchStart);
+				}
+				if (ReceiveSerialTextView.EndMarkLastSearch.Buffer == null) {///condicion inicial
+					ReceiveSerialTextView.OriginalTextView.Buffer.AddMark(ReceiveSerialTextView.EndMarkLastSearch, MatchEnd);
+				} else {
+					ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.EndMarkLastSearch, MatchEnd);
+				}
+				ReceiveSerialTextView.OriginalTextView.ScrollMarkOnscreen(ReceiveSerialTextView.BeginMarkLastSearch);
+				Gui.StatusBar.Pop(0);
+			} else {
+				Gui.StatusBar.Pop(0);
+				Gui.StatusBar.Push(0, "Sin coincidencias");
+			}
+		}
+		void Gui_BtSearchForward_Clicked (object sender, EventArgs e)
+		{
+			Gtk.Entry entry = Gui.EntrySearchBox;
+			if (ReceiveSerialTextView.EndMarkLastSearch.Buffer == null || ReceiveSerialTextView.BeginMarkLastSearch.Buffer == null) {///condicion inicial
+				return;///no hacemos nada
+			}
+			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(ReceiveSerialTextView.EndMarkLastSearch);
+			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.EndIter;
+			if (entry.Text.Length == 0) {
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+				return;
+			}
+			Gtk.TextIter MatchStart;
+			Gtk.TextIter MatchEnd;
+			if (StartIter.ForwardSearch(entry.Text, TextSearchFlags.TextOnly, out MatchStart, out MatchEnd, EndIter)) {
+				LimpiaResaltadoBusqueda();
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.ApplyTag(ReceiveSerialTextView.Resaltado, MatchStart, MatchEnd);
+				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.BeginMarkLastSearch, MatchStart);
+				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.EndMarkLastSearch, MatchEnd);
+				ReceiveSerialTextView.OriginalTextView.ScrollMarkOnscreen(ReceiveSerialTextView.BeginMarkLastSearch);
+			}
+		}
+		void Gui_BtSearchBackward_Clicked (object sender, EventArgs e)
+		{
+			Gtk.Entry entry = Gui.EntrySearchBox;
+			if (ReceiveSerialTextView.EndMarkLastSearch.Buffer == null || ReceiveSerialTextView.BeginMarkLastSearch.Buffer == null) {///condicion inicial
+				return;///no hacemos nada
+			}
+			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(ReceiveSerialTextView.BeginMarkLastSearch);///comenzamos desde el inicio de la busqueda anterior pq buscamos pa'tras
+			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;///El enditer es el inicio porque buscamos pa'tras
+			if (entry.Text.Length == 0) {
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+				return;
+			}
+			Gtk.TextIter MatchStart;
+			Gtk.TextIter MatchEnd;
+			if (StartIter.BackwardSearch(entry.Text, TextSearchFlags.TextOnly, out MatchStart, out MatchEnd, EndIter)) {
+				LimpiaResaltadoBusqueda();
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.ApplyTag(ReceiveSerialTextView.Resaltado,MatchStart,MatchEnd);
+				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.BeginMarkLastSearch, MatchStart);///La marca begin siempre esta antes de la marca end
+				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.EndMarkLastSearch, MatchEnd);///La marca begin siempre esta antes de la marca end
+				ReceiveSerialTextView.OriginalTextView.ScrollMarkOnscreen(ReceiveSerialTextView.BeginMarkLastSearch);
+
+			}
+		}
+		void LimpiaResaltadoBusqueda()
+		{
+			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;
+			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.EndIter;
+			ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+		}
+		void Gui_MainWindow_KeyPressEvent (object o, KeyPressEventArgs args)
+		{
+			if ( (args.Event.Key == Gdk.Key.f && (args.Event.State&Gdk.ModifierType.ControlMask)!=0) || ((args.Event.State&Gdk.ModifierType.ControlMask)!=0 && args.Event.Key == Gdk.Key.F)){
+				if (Gui.HbSearchBox.Visible) {
+					Gui.HbSearchBox.HideAll();
+				} else {
+					Gui.HbSearchBox.ShowAll();
+					Gui.EntrySearchBox.GrabFocus();
+				}
+			}
+			args.RetVal = true;			
 		}
 
 		void PonerEncabezado()
@@ -532,7 +658,7 @@ namespace SerialTerminal
 
 			if (Utiles.GetIndexOfComboBoxByString(Gui.CbTextoEnviado, Gui.CbTextoEnviado.ActiveText) == -1) {
 				Gui.CbTextoEnviado.AppendText(Gui.CbTextoEnviado.ActiveText);
-				SendComands.Add(Gui.CbTextoEnviado.ActiveText);
+				AppConfig.SendComands.Add(Gui.CbTextoEnviado.ActiveText);
 			}
 		}
 
@@ -543,43 +669,30 @@ namespace SerialTerminal
 			if (ret == ResponseType.Yes) {
 				SerialLogFile.Close();
 				Gui.SerialTextView.Buffer.Clear();
-				SerialLogFile = new StreamWriter(MyStorage.CreateFile("Config/SerialLog"));
-				SendComands.Clear();
+				SerialLogFile = new StreamWriter(System.IO.File.Create("SerialLog"));
+				AppConfig.SendComands.Clear();
 				((Gtk.ListStore)Gui.CbTextoEnviado.Model).Clear();
 			}
 			ms.Destroy();
 		}
 
-		void Gui_ToolButtonSaveLog_Clicked (object sender, EventArgs e)
-		{
-			Gtk.FileChooserDialog fch = new Gtk.FileChooserDialog("Escoja donde guardar el archivo", Gui.MainWindow, Gtk.FileChooserAction.Save, "OK", Gtk.ResponseType.Ok, "Nah!", Gtk.ResponseType.Cancel);
-			Gtk.ResponseType ret = (Gtk.ResponseType)fch.Run();
-			if (ret == ResponseType.Ok) {
-				SerialLogFile.Close();
-				IsolatedStorageFileStream Ifs = new IsolatedStorageFileStream("Config/SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
-				FileStream sw = new FileStream(fch.Filename,FileMode.Create,FileAccess.Write);
-				Ifs.CopyTo(sw);
-				Ifs.Close();
-				sw.Close();
-
-				Ifs = new IsolatedStorageFileStream("Config/SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
-				Ifs.Seek(0, SeekOrigin.End);
-				SerialLogFile = new StreamWriter(Ifs) {
-					AutoFlush = true
-				};
-
-			}
-			fch.Destroy();
-		}
-
 		void Gui_ComboHandShaking_Changed (object sender, EventArgs e)
 		{
-			PortConfig.Handshaking = (UInt32)((ComboBox)sender).Active;
+			AppConfig.PortConfig.Handshaking = (UInt32)((ComboBox)sender).Active;
 		}
 
+		Gdk.Color Rojo = new Gdk.Color(255, 0, 0);
+		Gdk.Color Negro = new Gdk.Color(0, 0, 0);
 		void Gui_ComboBaudRate_Changed (object sender, EventArgs e)
 		{
-			PortConfig.BaudRate = UInt32.Parse(((ComboBox)sender).ActiveText);
+			UInt32 baudrate;
+			Gtk.Entry entry =(Gtk.Entry)((ComboBox)sender).Child;
+			if (UInt32.TryParse(((ComboBox)sender).ActiveText, out baudrate)) {
+				AppConfig.PortConfig.BaudRate = baudrate;
+				entry.ModifyText(StateType.Normal, Negro);
+			} else {
+				entry.ModifyText(StateType.Normal, Rojo);
+			}
 		}
 
 		void CloseSerialPortClicked (object sender, EventArgs e)
@@ -597,12 +710,25 @@ namespace SerialTerminal
 		void OpenSerialPortClicked (object sender, EventArgs e)
 		{
 			if (sport == null) {
-				int baudrate = int.Parse (Gui.ComboBaudRate.ActiveText);
-				sport = new SerialPort (Gui.ComboSelecionaPuerto.ActiveText, baudrate , Parity.None, 8, StopBits.One);
-				sport.Handshake = (Handshake)Gui.ComboHandShaking.Active;
+				int baudrate;
+				if (int.TryParse(Gui.ComboBaudRate.ActiveText, out baudrate)) {
+					sport = new SerialPort(Gui.ComboSelecionaPuerto.ActiveText, baudrate, Parity.None, 8, StopBits.One);
+					sport.Handshake = (Handshake)Gui.ComboHandShaking.Active;
+					AppConfig.PortConfig.PortName = Gui.ComboSelecionaPuerto.ActiveText;
+				} else {
+					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Baudrate inválido");
+					sport = null;
+					return;
+				}
 			}
 			if (!sport.IsOpen) {
-				sport.Open ();
+				try{
+					sport.Open ();
+				}catch(Exception ex){
+					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, ex.Message);
+					sport = null;
+					return;
+				}
 			}
 			Gui.ToolBarOpenSerialPort.Sensitive=false;
 			Gui.ToolBarCloseSerialPort.Sensitive=true;
@@ -707,7 +833,7 @@ namespace SerialTerminal
 			return true;
 		}
 		/// <summary>
-		/// Escanea el string para buscar "palabras claves" en el log y hacer algo
+		/// Escanea el string para buscar "palabras claves" en el log y hacer algo como en el docklight
 		/// </summary>
 		/// <param name="data">El string</param>
 		void EscaneaString(string data)
@@ -731,24 +857,14 @@ namespace SerialTerminal
 					Gui.ComboSelecionaPuerto.AppendText(st);
 				}
 			} else {
-				PortConfig.PortName = Gui.ComboSelecionaPuerto.ActiveText;
+				
 			}
 		}
 
 		void MainWindow_delete_event_cb (object o, DeleteEventArgs args)
 		{
-			XmlSerializer ser = new XmlSerializer(typeof(PortConfigStruct));
-			IsolatedStorageFileStream Ifs = new IsolatedStorageFileStream("Config/PortConfig", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
-			ser.Serialize(Ifs, PortConfig);
-			Ifs.Close();
-			SerialLogFile.Close();
-
-			ser = new XmlSerializer(typeof(List<string>));
-			Ifs = new IsolatedStorageFileStream("Config/SendSerial", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite,MyStorage);
-			ser.Serialize(Ifs, SendComands);
-			Ifs.Close();
-
-			MyStorage.Close();
+			ProgramConfig.SaveProgramConfig(AppConfig);
+			SaveCommandList("ListaComandos.conf");
 			Application.Quit();
 		}
 

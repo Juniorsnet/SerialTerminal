@@ -15,31 +15,6 @@ namespace SerialTerminal
 			} else {
 				ListaComandos.Clear();
 			}
-			/*
-			for (int i = 0; i < 100; i++) {
-				ComandoSerial comando = new ComandoSerial();
-				comando.ID = i;
-				comando.Nombre = string.Format("N:{0}", i);
-				comando.Comando = string.Format("AT+{0} asdf asdf asdf4 asdf5 asdf6 asdf7", i);
-				comando.FindeLinea = FinDeLinea.CRLF;
-				comando.Enviar = new Gtk.Button(new Gtk.Image(Stock.MediaPlay, IconSize.Button));
-				comando.Eliminar = new Gtk.Button(new Gtk.Image(Stock.Remove, IconSize.Button));
-				comando.Enviar.Clicked+= (sender, e) => {
-					Console.WriteLine("Boton Enviar {0} cliked!",comando.ID);
-				};
-				comando.Eliminar.Clicked+= (sender, e) => {
-					Console.WriteLine("Boton Eliminar {0} cliked!",comando.ID);
-					for(int j=0;j<ListaComandos.Count;j++) {
-						if(ListaComandos[j].ID==comando.ID){
-							ListaComandos.Remove(ListaComandos[j]);
-							RenderComandList();
-							break;
-						}
-					}
-				};
-				ListaComandos.Add(comando);
-			}
-			*/
 		}
 		void RenderComandList()
 		{

@@ -67,9 +67,14 @@ using Gtk;
 			}
 			return true;
 		}
+		
 		public static int GetIndexOfComboBoxByString(Gtk.ComboBox cb, string StringBuscado)
 		{
 			int IndiceComboBox=-1;
+			if (StringBuscado == null) {
+				Console.WriteLine("[{0}]-ERR- StringBuscado : {1}, Resultado : {2}", GetCallerMemberName(),StringBuscado,IndiceComboBox);
+				return IndiceComboBox;
+			}
 			((Gtk.ListStore)cb.Model).Foreach((model, path, iter) =>  {
 				string ComboText = (string)((Gtk.ListStore)model).GetValue(iter, 0);
 				if (ComboText.ToUpper().Contains(StringBuscado.ToUpper())) {

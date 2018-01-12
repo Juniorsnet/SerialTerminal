@@ -5,12 +5,15 @@ namespace SerialTerminal
 {
 	public class TextViewMejorado
 	{
+		public TextTag Resaltado;
 		public TextTag Negrita;
 		public TextTag Cursiva;
 		public TextTag SubRayado;
 		public TextTag ColorVerde;
 		public TextTag ColorVerdeClaro;
 		public Gtk.TextView OriginalTextView;
+		public Gtk.TextMark BeginMarkLastSearch;
+		public Gtk.TextMark EndMarkLastSearch;
 		public TextViewMejorado():this(new Gtk.TextView())
 		{
 
@@ -32,6 +35,10 @@ namespace SerialTerminal
 			Negrita = new TextTag("Negrita");
 			Negrita.Weight=Pango.Weight.Bold;
 			OriginalTextView.Buffer.TagTable.Add(Negrita);
+			Resaltado = new TextTag("Resaltado");
+			Resaltado.Background = "white";
+			Resaltado.Foreground = "black";
+			OriginalTextView.Buffer.TagTable.Add(Resaltado);
 			Cursiva = new TextTag("Cursiva");
 			Cursiva.Style = Pango.Style.Italic;
 			OriginalTextView.Buffer.TagTable.Add(Cursiva);
@@ -44,6 +51,8 @@ namespace SerialTerminal
 			//OriginalTextView.SizeAllocated+= OriginalTextView_SizeAllocated;
 			OriginalTextView.WrapMode = WrapMode.WordChar;
 			setup(Gui.ScrolledWindowSerialTextView.Vadjustment);
+			BeginMarkLastSearch = new TextMark(null,true);
+			EndMarkLastSearch= new TextMark(null,true);
 		}
 		/*
 		void OriginalTextView_SizeAllocated (object o, SizeAllocatedArgs args)
@@ -55,9 +64,9 @@ namespace SerialTerminal
 		{
 			TextIter start;
 			TextIter end;
-			if (OriginalTextView.Buffer.CharCount > 1024*1024*1024) {
+			if (OriginalTextView.Buffer.CharCount > Int32.MaxValue-(1024*1024)) {
 				start = OriginalTextView.Buffer.StartIter;
-				end = OriginalTextView.Buffer.GetIterAtOffset((1024*1024*1024) - 100);
+				end = OriginalTextView.Buffer.GetIterAtOffset(Int32.MaxValue-(1024*1024*2));
 				OriginalTextView.Buffer.Delete(ref start, ref end);
 			}
 		}
