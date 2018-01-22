@@ -197,16 +197,18 @@ namespace SerialTerminal
 			if (!System.IO.File.Exists("SerialLog")) {
 				SerialLogFile = new StreamWriter(System.IO.File.Create("SerialLog"));
 			} else {
-				System.IO.FileStream Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-				StreamReader SerialLogReader = new StreamReader(Ifs);
-				Gui.SerialTextView.Buffer.Clear();
-				Utiles.AppendTextToBuffer(Gui.SerialTextView,SerialLogReader.ReadToEnd());
-				SerialLogReader.Close();
-				Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-				Ifs.Seek(0, SeekOrigin.End);
-				SerialLogFile = new StreamWriter(Ifs) {
-					AutoFlush = true
-				};
+				Gtk.Application.Invoke(delegate {
+					System.IO.FileStream Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+					StreamReader SerialLogReader = new StreamReader(Ifs);
+					Gui.SerialTextView.Buffer.Clear();
+					Utiles.AppendTextToBuffer(Gui.SerialTextView,SerialLogReader.ReadToEnd());
+					SerialLogReader.Close();
+					Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+					Ifs.Seek(0, SeekOrigin.End);
+					SerialLogFile = new StreamWriter(Ifs) {
+						AutoFlush = true
+					};
+				});
 			}
 			#endregion
 			/*
