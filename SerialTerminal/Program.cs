@@ -414,7 +414,7 @@ namespace SerialTerminal
 								fs.Read(buf, 0, buf.Length);
 								string s = Encoding.GetEncoding(1252).GetString(buf);
 								if (s.Contains("</body></html>")) {
-									int index = s.IndexOf("</body></html>");
+									int index = s.IndexOf("</body></html>", StringComparison.CurrentCulture);
 									fs.Seek(-128 + index, SeekOrigin.End);
 									fs.SetLength(fs.Position);
 								} else {
@@ -709,6 +709,7 @@ namespace SerialTerminal
 		}
 		SerialPort sport;
 		uint TimerID;
+		Int32 WaitMoreBytes;//default
 		void OpenSerialPortClicked (object sender, EventArgs e)
 		{
 			if (sport == null) {
@@ -734,7 +735,8 @@ namespace SerialTerminal
 			}
 			Gui.ToolBarOpenSerialPort.Sensitive=false;
 			Gui.ToolBarCloseSerialPort.Sensitive=true;
-			TimerID = GLib.Timeout.Add (200, new GLib.TimeoutHandler (SerialDataReceived));
+			WaitMoreBytes = (115 * 10) / (sport.BaudRate / 1000);
+			TimerID = GLib.Timeout.Add(150, new GLib.TimeoutHandler (SerialDataReceived));
 		}
 
 		void PrintTimeStamp(DateTime Timestamp,bool Send)
@@ -808,21 +810,25 @@ namespace SerialTerminal
 					PrintTimeStamp(Timestamp, false);
 					//stb.AppendLine();
 					while (sport.BytesToRead > 0) {
-						int i = sport.ReadByte();
-						if (((i < 32) || (i > 126)) && ((i != 0x0a) && (i != 0x0d))) {
-							stb.AppendFormat("0x{0:X2}", i);
-						} else {
-							char c = (char)i;
-							if (PrintCrLfs) {
-								if (c == '\n') {
-									stb.Append("<LF>");
-								} else if (c == '\r') {
-									stb.Append("<CR>");
+						while (sport.BytesToRead > 0) {
+							int i = sport.ReadByte();
+							if (((i < 32) || (i > 126)) && ((i != 0x0a) && (i != 0x0d))) {
+								stb.AppendFormat("0x{0:X2}", i);
+							} else {
+								char c = (char)i;
+								if (PrintCrLfs) {
+									if (c == '\n') {
+										stb.Append("<LF>");
+									} else if (c == '\r') {
+										stb.Append("<CR>");
+									}
 								}
+								stb.Append(c);
 							}
-							stb.Append(c);
 						}
+						Thread.Sleep(WaitMoreBytes);///Maybe more?
 					}
+
 					ReceiveSerialTextView.AppendTextTag(stb.ToString());
 					WriteSerialLog(stb.ToString());
 					Gtk.TextIter LastIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(LastMark);
