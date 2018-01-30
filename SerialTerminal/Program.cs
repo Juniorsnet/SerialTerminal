@@ -110,6 +110,15 @@ namespace SerialTerminal
 			#endregion
 			Gui.ToolButtonConfigurar.Clicked+= Gui_ToolButtonConfigurar_Clicked;
 			Gui.ComboSelecionaPuerto.Changed+= ComboSelecionaPuertoHandleChange;
+			Gui.ComboSelecionaPuerto.AddNotification("popup-shown", (object o, GLib.NotifyArgs Nargs) => {
+				//Console.WriteLine("Notify!! {0} = {1}",Nargs.Property,((Gtk.ComboBox)o).PopupShown);	
+				Gtk.ComboBox cb = (Gtk.ComboBox)o;
+				if (cb.PopupShown) {
+					int SelectedIndex = cb.Active;
+					Utiles.ListaPuertos(cb);
+					cb.Active = SelectedIndex;
+				}
+			});
 			Gui.ToolBarOpenSerialPort.Clicked+= OpenSerialPortClicked;
 			Gui.ToolBarCloseSerialPort.Clicked+= CloseSerialPortClicked;
 			Gui.ComboBaudRate.Changed+= Gui_ComboBaudRate_Changed;
@@ -851,7 +860,7 @@ namespace SerialTerminal
 
 		void ComboSelecionaPuertoHandleChange (object o, EventArgs args)
 		{
-			if (Gui.ComboSelecionaPuerto.ActiveText.CompareTo("Actualizar Puertos") == 0) {
+			/*if (Gui.ComboSelecionaPuerto.ActiveText.CompareTo("Actualizar Puertos") == 0) {
 				Console.WriteLine("Listando Puertos");
 				foreach (string s in Enum.GetNames(typeof(Handshake))) {
 					Console.WriteLine("   {0}", s);
@@ -866,7 +875,10 @@ namespace SerialTerminal
 				}
 			} else {
 				
-			}
+			}*/
+			/*Gui.ComboSelecionaPuerto.Changed -= ComboSelecionaPuertoHandleChange;
+
+			Gui.ComboSelecionaPuerto.Changed += ComboSelecionaPuertoHandleChange;*/
 		}
 
 		void MainWindow_delete_event_cb (object o, DeleteEventArgs args)
