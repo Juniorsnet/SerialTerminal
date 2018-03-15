@@ -27,6 +27,8 @@ namespace SerialTerminal
 			public PortConfigStruct PortConfig;
 			public string ProgramFontConfig;
 			public string ConsoleFontConfig;
+			public UInt32 SerialLookTime;
+			public bool StrictTimestamp;
 			public List<string> SendComands;
 		};
 		AppConfigStruct AppConfig;
@@ -106,6 +108,9 @@ namespace SerialTerminal
 								widget_class ""*"" style ""font""
 								gtk-font-name = ""{0}""", Gui.FontButtonProgram.FontName));
 				Gtk.Rc.ResetStyles(Settings.Default);
+			}
+			if (AppConfig.SerialLookTime == 0) {
+				AppConfig.SerialLookTime = 200;
 			}
 			#endregion
 			Gui.ToolButtonConfigurar.Clicked+= Gui_ToolButtonConfigurar_Clicked;
@@ -745,7 +750,7 @@ namespace SerialTerminal
 			Gui.ToolBarOpenSerialPort.Sensitive=false;
 			Gui.ToolBarCloseSerialPort.Sensitive=true;
 			WaitMoreBytes = (115 * 10) / (sport.BaudRate / 1000);
-			TimerID = GLib.Timeout.Add(150, new GLib.TimeoutHandler (SerialDataReceived));
+			TimerID = GLib.Timeout.Add(Math.Max(AppConfig.SerialLookTime,10), new GLib.TimeoutHandler (SerialDataReceived));
 		}
 
 		void PrintTimeStamp(DateTime Timestamp,bool Send)
@@ -835,7 +840,9 @@ namespace SerialTerminal
 								stb.Append(c);
 							}
 						}
-						Thread.Sleep(WaitMoreBytes);///Maybe more?
+						if (!AppConfig.StrictTimestamp) {
+							Thread.Sleep(WaitMoreBytes);///Maybe more?
+						}
 					}
 
 					ReceiveSerialTextView.AppendTextTag(stb.ToString());
