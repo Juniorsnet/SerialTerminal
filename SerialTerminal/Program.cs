@@ -117,7 +117,7 @@ namespace SerialTerminal
 			if (AppConfig.SerialLookTime == 0) {
 				AppConfig.SerialLookTime = 200;
 			}
-
+			Gui.SpinBtnSerialLookTime.Value = AppConfig.SerialLookTime;
 			Gui.ChkStrictTimeStamp.Active = AppConfig.StrictTimestamp;
 			Gui.ChkbtPrintTimeStamp.Active = AppConfig.AppPrintTimestamp;
 			Gui.ChkbtPrintCrLfs.Active = AppConfig.PrintCrLfs;
