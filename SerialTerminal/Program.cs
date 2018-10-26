@@ -17,7 +17,8 @@ namespace SerialTerminal
 {
 	public partial class MainClass
 	{
-		enum SerialLogFormat{
+		enum SerialLogFormat
+		{
 			TEXTO,
 			CSV,
 			HTML
@@ -29,6 +30,9 @@ namespace SerialTerminal
 			public string ConsoleFontConfig;
 			public UInt32 SerialLookTime;
 			public bool StrictTimestamp;
+			public bool AppPrintTimestamp;
+			public bool PrintCrLfs;
+			public bool UseIldeTimer;
 			public List<string> SendComands;
 		};
 		AppConfigStruct AppConfig;
@@ -48,23 +52,24 @@ namespace SerialTerminal
 		{
 			return JsonConvert.SerializeObject(obj);
 		}
-		void OneFunctionToRuleThemAll (GLib.UnhandledExceptionArgs args)
+		void OneFunctionToRuleThemAll(GLib.UnhandledExceptionArgs args)
 		{
-			MessageDialog md = new MessageDialog(null, DialogFlags.Modal, MessageType.Error, ButtonsType.Close, false, "{0}",((System.Exception)args.ExceptionObject).Message+((System.Exception)args.ExceptionObject).StackTrace+((System.Exception)args.ExceptionObject).InnerException);
+			MessageDialog md = new MessageDialog(null, DialogFlags.Modal, MessageType.Error, ButtonsType.Close, false, "{0}", ((System.Exception)args.ExceptionObject).Message + ((System.Exception)args.ExceptionObject).StackTrace + ((System.Exception)args.ExceptionObject).InnerException);
 			md.Run();
 			md.Destroy();
-			System.IO.File.WriteAllText("crashapp.log",((System.Exception)args.ExceptionObject).Message+((System.Exception)args.ExceptionObject).StackTrace+((System.Exception)args.ExceptionObject).InnerException);
+			System.IO.File.WriteAllText("crashapp.log", ((System.Exception)args.ExceptionObject).Message + ((System.Exception)args.ExceptionObject).StackTrace + ((System.Exception)args.ExceptionObject).InnerException);
 			//args.ExitApplication=true;
 		}
 		public static void Main(string[] args)
 		{
 			new MainClass(args);
 		}
-		public MainClass(string[] args){
+		public MainClass(string[] args)
+		{
 
-			if(System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
+			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
 				System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
-				System.Environment.OSVersion.Platform == PlatformID.Win32S){
+				System.Environment.OSVersion.Platform == PlatformID.Win32S) {
 				CheckSystem.Get45PlusFromRegistry();
 				if (!CheckSystem.CheckWindowsGtk()) {
 					Console.WriteLine("No se ha detectado GTK Sharp");
@@ -74,33 +79,33 @@ namespace SerialTerminal
 			if (System.Environment.OSVersion.Platform == PlatformID.Win32Windows ||
 				System.Environment.OSVersion.Platform == PlatformID.Win32NT ||
 				System.Environment.OSVersion.Platform == PlatformID.Win32S) {
-				Gtk.Rc.Parse(string.Format("{0}/theme/gtkrc",System.IO.Directory.GetCurrentDirectory()));
+				Gtk.Rc.Parse(string.Format("{0}/theme/gtkrc", System.IO.Directory.GetCurrentDirectory()));
 			}
 			#region SeteoDirectorioTrabajo
 			ProgramConfig = new ProgramConfigClass();
 			#endregion
 			Gtk.Application.Init();
-			GLib.ExceptionManager.UnhandledException+= OneFunctionToRuleThemAll;
+			GLib.ExceptionManager.UnhandledException += OneFunctionToRuleThemAll;
 			System.IO.StreamReader sr = new System.IO.StreamReader(System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("SerialTerminal.gui.glade"));
 			Gui.InitObjects(sr.ReadToEnd());
 			sr.Close();
-			Gui.StatusBar.Push(0,"Listo!");
-			Gui.MainWindow.Title="Serial Terminal V: " + System.Reflection.Assembly.GetExecutingAssembly ().GetName ().Version.ToString ();
-			ReceiveSerialTextView= new TextViewMejorado(Gui.SerialTextView);
-			ReceiveSerialTextView.AppendTextTag("Serial Terminal\n",ReceiveSerialTextView.SubRayado,ReceiveSerialTextView.Cursiva);
+			Gui.StatusBar.Push(0, "Listo!");
+			Gui.MainWindow.Title = "Serial Terminal V: " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+			ReceiveSerialTextView = new TextViewMejorado(Gui.SerialTextView);
+			ReceiveSerialTextView.AppendTextTag("Serial Terminal\n", ReceiveSerialTextView.SubRayado, ReceiveSerialTextView.Cursiva);
 			ReceiveSerialTextView.AppendTextTag("Esto es un terminal serial, escrito en C# usando GTK#");
 			#region Load Config
 			ProgramConfig.LoadProgramConfig(ref AppConfig);
-			if(AppConfig.ConsoleFontConfig==null){
-				AppConfig.ConsoleFontConfig=Gui.FontButtonConsola.FontName=ReceiveSerialTextView.OriginalTextView.PangoContext.FontDescription.ToString();
-			}else{
-				Gui.FontButtonConsola.FontName=AppConfig.ConsoleFontConfig;
+			if (AppConfig.ConsoleFontConfig == null) {
+				AppConfig.ConsoleFontConfig = Gui.FontButtonConsola.FontName = ReceiveSerialTextView.OriginalTextView.PangoContext.FontDescription.ToString();
+			} else {
+				Gui.FontButtonConsola.FontName = AppConfig.ConsoleFontConfig;
 				ReceiveSerialTextView.OriginalTextView.ModifyFont(Pango.FontDescription.FromString(Gui.FontButtonConsola.FontName));
 			}
-			if(AppConfig.ProgramFontConfig==null){
-				AppConfig.ProgramFontConfig=Gui.FontButtonProgram.FontName=Gtk.Rc.GetStyle(Gui.MainWindow).FontDescription.ToString();
-			}else{
-				Gui.FontButtonProgram.FontName=AppConfig.ProgramFontConfig;
+			if (AppConfig.ProgramFontConfig == null) {
+				AppConfig.ProgramFontConfig = Gui.FontButtonProgram.FontName = Gtk.Rc.GetStyle(Gui.MainWindow).FontDescription.ToString();
+			} else {
+				Gui.FontButtonProgram.FontName = AppConfig.ProgramFontConfig;
 				Gtk.Rc.ParseString(string.Format(@"style ""font""
 								{{
 								font_name = ""{0}""
@@ -112,9 +117,26 @@ namespace SerialTerminal
 			if (AppConfig.SerialLookTime == 0) {
 				AppConfig.SerialLookTime = 200;
 			}
+
+			Gui.ChkStrictTimeStamp.Active = AppConfig.StrictTimestamp;
+			Gui.ChkbtPrintTimeStamp.Active = AppConfig.AppPrintTimestamp;
+			Gui.ChkbtPrintCrLfs.Active = AppConfig.PrintCrLfs;
+			Gui.ChkbtnUseIdleTimer.Active = AppConfig.UseIldeTimer;
+
+			Utiles.ListaPuertos(Gui.ComboSelecionaPuerto);
+			int i = Utiles.GetIndexOfComboBoxByString(Gui.ComboSelecionaPuerto, AppConfig.PortConfig.PortName);
+			if (i != -1) {
+				Gui.ComboSelecionaPuerto.Active = i;
+			}
+			i = Utiles.GetIndexOfComboBoxByString(Gui.ComboBaudRate, AppConfig.PortConfig.BaudRate.ToString());
+			if (i != -1) {
+				Gui.ComboBaudRate.Active = i;
+			}
+			Gui.ComboHandShaking.Active = (int)AppConfig.PortConfig.Handshaking;
+
 			#endregion
-			Gui.ToolButtonConfigurar.Clicked+= Gui_ToolButtonConfigurar_Clicked;
-			Gui.ComboSelecionaPuerto.Changed+= ComboSelecionaPuertoHandleChange;
+			Gui.ToolButtonConfigurar.Clicked += Gui_ToolButtonConfigurar_Clicked;
+			Gui.ComboSelecionaPuerto.Changed += ComboSelecionaPuertoHandleChange;
 			Gui.ComboSelecionaPuerto.AddNotification("popup-shown", (object o, GLib.NotifyArgs Nargs) => {
 				//Console.WriteLine("Notify!! {0} = {1}",Nargs.Property,((Gtk.ComboBox)o).PopupShown);	
 				Gtk.ComboBox cb = (Gtk.ComboBox)o;
@@ -124,25 +146,25 @@ namespace SerialTerminal
 					cb.Active = SelectedIndex;
 				}
 			});
-			Gui.ToolBarOpenSerialPort.Clicked+= OpenSerialPortClicked;
-			Gui.ToolBarCloseSerialPort.Clicked+= CloseSerialPortClicked;
-			Gui.ComboBaudRate.Changed+= Gui_ComboBaudRate_Changed;
-			Gui.ComboHandShaking.Changed+= Gui_ComboHandShaking_Changed;
-			Gui.MainWindow.DeleteEvent+= MainWindow_delete_event_cb;
+			Gui.ToolBarOpenSerialPort.Clicked += OpenSerialPortClicked;
+			Gui.ToolBarCloseSerialPort.Clicked += CloseSerialPortClicked;
+			Gui.ComboBaudRate.Changed += Gui_ComboBaudRate_Changed;
+			Gui.ComboHandShaking.Changed += Gui_ComboHandShaking_Changed;
+			Gui.MainWindow.DeleteEvent += MainWindow_delete_event_cb;
 			Gui.ToolButtonSaveLog.Toggled += Gui_TbSaveLog_Toggled;
-			Gui.ToolButtonClearLog.Clicked+= Gui_ToolButtonClearLog_Clicked;
-			Gui.BtEnviarSerialPort.Clicked+= Gui_BtEnviarSerialPort_Clicked;
-			Gui.CbTextoEnviado.KeyPressEvent+= Gui_CbTextoEnviado_KeyPressEvent;
+			Gui.ToolButtonClearLog.Clicked += Gui_ToolButtonClearLog_Clicked;
+			Gui.BtEnviarSerialPort.Clicked += Gui_BtEnviarSerialPort_Clicked;
+			Gui.CbTextoEnviado.KeyPressEvent += Gui_CbTextoEnviado_KeyPressEvent;
 			Gui.BtGuardarComando.Clicked += Gui_BtGuardarComando_Clicked;
-			Gui.MainWindow.KeyPressEvent+= Gui_MainWindow_KeyPressEvent;
-			Gui.EntrySearchBox.Changed+= Gui_EntrySearchBox_Changed;
-			Gui.BtSearchForward.Clicked+= Gui_BtSearchForward_Clicked;
-			Gui.BtSearchBackward.Clicked+= Gui_BtSearchBackward_Clicked;
-			Gui.BtHideSearchBox.Clicked+= delegate {
+			Gui.MainWindow.KeyPressEvent += Gui_MainWindow_KeyPressEvent;
+			Gui.EntrySearchBox.Changed += Gui_EntrySearchBox_Changed;
+			Gui.BtSearchForward.Clicked += Gui_BtSearchForward_Clicked;
+			Gui.BtSearchBackward.Clicked += Gui_BtSearchBackward_Clicked;
+			Gui.BtHideSearchBox.Clicked += delegate {
 				LimpiaResaltadoBusqueda();
 				Gui.HbSearchBox.HideAll();
 			};
-			Gui.ActionGuardarProyecto.Activated+= (object sender, EventArgs e) => {
+			Gui.ActionGuardarProyecto.Activated += (object sender, EventArgs e) => {
 				Gtk.ResponseType ret = 0;
 				Gtk.FileChooserDialog fch = new Gtk.FileChooserDialog("Escoja donde guardar el archivo", Gui.MainWindow, Gtk.FileChooserAction.Save, "OK", Gtk.ResponseType.Ok, "Cancelar", Gtk.ResponseType.Cancel);
 				ret = (Gtk.ResponseType)fch.Run();
@@ -151,7 +173,7 @@ namespace SerialTerminal
 				}
 				fch.Destroy();
 			};
-			Gui.ActionAbrirProyecto.Activated+= (object sender, EventArgs e) => {
+			Gui.ActionAbrirProyecto.Activated += (object sender, EventArgs e) => {
 				Gtk.ResponseType ret = 0;
 				Gtk.FileChooserDialog fch = new Gtk.FileChooserDialog("Escoja el archivo", Gui.MainWindow, Gtk.FileChooserAction.Open, "OK", Gtk.ResponseType.Ok, "Cancelar", Gtk.ResponseType.Cancel);
 				ret = (Gtk.ResponseType)fch.Run();
@@ -161,24 +183,24 @@ namespace SerialTerminal
 				}
 				fch.Destroy();
 			};
-			((Gtk.Entry)Gui.CbTextoEnviado.Child).Activated+= CbTextoEnviadoEntry_Activated;
+			((Gtk.Entry)Gui.CbTextoEnviado.Child).Activated += CbTextoEnviadoEntry_Activated;
 			CreateComandList();
 			LoadCommandList("ListaComandos.conf");
 			RenderComandList();
 			LastMark = ReceiveSerialTextView.OriginalTextView.Buffer.CreateMark("Escaneo", ReceiveSerialTextView.OriginalTextView.Buffer.EndIter, true);
-			Gui.BtExaminarGuardarLog.Clicked+= (object sender, EventArgs e) => {
+			Gui.BtExaminarGuardarLog.Clicked += (object sender, EventArgs e) => {
 				Gtk.ResponseType ret = 0;
 				Gtk.FileChooserDialog fch = new Gtk.FileChooserDialog("Escoja donde guardar el archivo", Gui.MainWindow, Gtk.FileChooserAction.Save, "OK", Gtk.ResponseType.Ok, "Cancelar", Gtk.ResponseType.Cancel);
 				ret = (Gtk.ResponseType)fch.Run();
 				if (ret == Gtk.ResponseType.Ok) {
-					Gui.EntryRutaLog.Text=fch.Filename;
+					Gui.EntryRutaLog.Text = fch.Filename;
 				}
 				fch.Destroy();
 			};
-			Gui.EntryNombreComando.Activated+= (object sender, EventArgs e) => {
+			Gui.EntryNombreComando.Activated += (object sender, EventArgs e) => {
 				Gui.BtNombreComadoOk.Click();
 			};
-			Gui.scrolledwindow4.MapEvent+= (object o, MapEventArgs margs) => {
+			Gui.scrolledwindow4.MapEvent += (object o, MapEventArgs margs) => {
 				Console.WriteLine(margs.RetVal);
 			};
 			string[] EnumNames = Enum.GetNames(typeof(Environment.SpecialFolder));
@@ -186,24 +208,11 @@ namespace SerialTerminal
 			for (int h = 0; h < EnumNames.Length; h++) {
 				//Console.WriteLine("Def: {0}, Loc: {1}",EnumNames[h],Environment.GetFolderPath((Environment.SpecialFolder)Datos.GetValue(h)));
 			}
-			#region AppConfig
-			Utiles.ListaPuertos(Gui.ComboSelecionaPuerto);
-			int i = Utiles.GetIndexOfComboBoxByString(Gui.ComboSelecionaPuerto,AppConfig.PortConfig.PortName);
-			if(i!=-1){
-				Gui.ComboSelecionaPuerto.Active=i;
-			}
-			i = Utiles.GetIndexOfComboBoxByString(Gui.ComboBaudRate,AppConfig.PortConfig.BaudRate.ToString());
-			if(i!=-1){
-				Gui.ComboBaudRate.Active=i;
-			}
-			Gui.ComboHandShaking.Active=(int)AppConfig.PortConfig.Handshaking;
-			#endregion
-
 			#region AppLog
-			if(AppConfig.SendComands==null || AppConfig.SendComands.Count==0){
+			if (AppConfig.SendComands == null || AppConfig.SendComands.Count == 0) {
 				AppConfig.SendComands = new List<string>();
 			} else {
-				foreach(string s in AppConfig.SendComands){
+				foreach (string s in AppConfig.SendComands) {
 					Gui.CbTextoEnviado.AppendText(s);
 				}
 			}
@@ -215,7 +224,7 @@ namespace SerialTerminal
 					System.IO.FileStream Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 					StreamReader SerialLogReader = new StreamReader(Ifs);
 					Gui.SerialTextView.Buffer.Clear();
-					Utiles.AppendTextToBuffer(Gui.SerialTextView,SerialLogReader.ReadToEnd());
+					Utiles.AppendTextToBuffer(Gui.SerialTextView, SerialLogReader.ReadToEnd());
 					SerialLogReader.Close();
 					Ifs = new System.IO.FileStream("SerialLog", FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 					Ifs.Seek(0, SeekOrigin.End);
@@ -235,7 +244,7 @@ namespace SerialTerminal
 			Gtk.Application.Run();
 		}
 
-		void Gui_ToolButtonConfigurar_Clicked (object sender, EventArgs e)
+		void Gui_ToolButtonConfigurar_Clicked(object sender, EventArgs e)
 		{
 			Gtk.ResponseType ret = (Gtk.ResponseType)Gui.DialogConfigApp.Run();
 			if (ret == ResponseType.Ok) {
@@ -254,11 +263,16 @@ namespace SerialTerminal
 					ReceiveSerialTextView.OriginalTextView.ModifyFont(Pango.FontDescription.FromString(Gui.FontButtonConsola.FontName));
 					AppConfig.ConsoleFontConfig = Gui.FontButtonConsola.FontName;
 				}
+				AppConfig.SerialLookTime = (UInt32)Gui.SpinBtnSerialLookTime.ValueAsInt;
+				AppConfig.StrictTimestamp = Gui.ChkStrictTimeStamp.Active;
+				AppConfig.AppPrintTimestamp = Gui.ChkbtPrintTimeStamp.Active;
+				AppConfig.PrintCrLfs = Gui.ChkbtPrintCrLfs.Active;
+				AppConfig.UseIldeTimer = Gui.ChkbtnUseIdleTimer.Active;
 			}
 			Gui.DialogConfigApp.Hide();
 		}
 
-		void Gui_EntrySearchBox_Changed (object sender, EventArgs e)
+		void Gui_EntrySearchBox_Changed(object sender, EventArgs e)
 		{
 			Gtk.Entry entry = (Gtk.Entry)sender;
 			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;
@@ -289,7 +303,7 @@ namespace SerialTerminal
 				Gui.StatusBar.Push(0, "Sin coincidencias");
 			}
 		}
-		void Gui_BtSearchForward_Clicked (object sender, EventArgs e)
+		void Gui_BtSearchForward_Clicked(object sender, EventArgs e)
 		{
 			Gtk.Entry entry = Gui.EntrySearchBox;
 			if (ReceiveSerialTextView.EndMarkLastSearch.Buffer == null || ReceiveSerialTextView.BeginMarkLastSearch.Buffer == null) {///condicion inicial
@@ -298,7 +312,7 @@ namespace SerialTerminal
 			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(ReceiveSerialTextView.EndMarkLastSearch);
 			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.EndIter;
 			if (entry.Text.Length == 0) {
-				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
 				return;
 			}
 			Gtk.TextIter MatchStart;
@@ -312,7 +326,7 @@ namespace SerialTerminal
 				ReceiveSerialTextView.OriginalTextView.ScrollMarkOnscreen(ReceiveSerialTextView.BeginMarkLastSearch);
 			}
 		}
-		void Gui_BtSearchBackward_Clicked (object sender, EventArgs e)
+		void Gui_BtSearchBackward_Clicked(object sender, EventArgs e)
 		{
 			Gtk.Entry entry = Gui.EntrySearchBox;
 			if (ReceiveSerialTextView.EndMarkLastSearch.Buffer == null || ReceiveSerialTextView.BeginMarkLastSearch.Buffer == null) {///condicion inicial
@@ -321,15 +335,15 @@ namespace SerialTerminal
 			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(ReceiveSerialTextView.BeginMarkLastSearch);///comenzamos desde el inicio de la busqueda anterior pq buscamos pa'tras
 			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;///El enditer es el inicio porque buscamos pa'tras
 			if (entry.Text.Length == 0) {
-				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
 				return;
 			}
 			Gtk.TextIter MatchStart;
 			Gtk.TextIter MatchEnd;
 			if (StartIter.BackwardSearch(entry.Text, TextSearchFlags.TextOnly, out MatchStart, out MatchEnd, EndIter)) {
 				LimpiaResaltadoBusqueda();
-				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
-				ReceiveSerialTextView.OriginalTextView.Buffer.ApplyTag(ReceiveSerialTextView.Resaltado,MatchStart,MatchEnd);
+				ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
+				ReceiveSerialTextView.OriginalTextView.Buffer.ApplyTag(ReceiveSerialTextView.Resaltado, MatchStart, MatchEnd);
 				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.BeginMarkLastSearch, MatchStart);///La marca begin siempre esta antes de la marca end
 				ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(ReceiveSerialTextView.EndMarkLastSearch, MatchEnd);///La marca begin siempre esta antes de la marca end
 				ReceiveSerialTextView.OriginalTextView.ScrollMarkOnscreen(ReceiveSerialTextView.BeginMarkLastSearch);
@@ -340,11 +354,11 @@ namespace SerialTerminal
 		{
 			Gtk.TextIter StartIter = ReceiveSerialTextView.OriginalTextView.Buffer.StartIter;
 			Gtk.TextIter EndIter = ReceiveSerialTextView.OriginalTextView.Buffer.EndIter;
-			ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado,StartIter,EndIter);
+			ReceiveSerialTextView.OriginalTextView.Buffer.RemoveTag(ReceiveSerialTextView.Resaltado, StartIter, EndIter);
 		}
-		void Gui_MainWindow_KeyPressEvent (object o, KeyPressEventArgs args)
+		void Gui_MainWindow_KeyPressEvent(object o, KeyPressEventArgs args)
 		{
-			if ( (args.Event.Key == Gdk.Key.f && (args.Event.State&Gdk.ModifierType.ControlMask)!=0) || ((args.Event.State&Gdk.ModifierType.ControlMask)!=0 && args.Event.Key == Gdk.Key.F)){
+			if ((args.Event.Key == Gdk.Key.f && (args.Event.State & Gdk.ModifierType.ControlMask) != 0) || ((args.Event.State & Gdk.ModifierType.ControlMask) != 0 && args.Event.Key == Gdk.Key.F)) {
 				if (Gui.HbSearchBox.Visible) {
 					Gui.HbSearchBox.HideAll();
 				} else {
@@ -352,7 +366,7 @@ namespace SerialTerminal
 					Gui.EntrySearchBox.GrabFocus();
 				}
 			}
-			args.RetVal = true;			
+			args.RetVal = true;
 		}
 
 		void PonerEncabezado()
@@ -397,9 +411,9 @@ namespace SerialTerminal
 							  <tr id=""Cab"">
 							    <th>Timestamp</th>
 							    <th>Serial Data</th>
-							  </tr>",DateTime.Now));
+							  </tr>", DateTime.Now));
 		}
-		void Gui_TbSaveLog_Toggled (object sender, EventArgs e)
+		void Gui_TbSaveLog_Toggled(object sender, EventArgs e)
 		{
 			if (((Gtk.ToggleToolButton)sender).Active) {
 				Gui.DialogGuardarLog.ShowAll();
@@ -452,23 +466,25 @@ namespace SerialTerminal
 							}
 						}
 					} else {
-						((Gtk.ToggleToolButton)sender).Active = false;
+						//((Gtk.ToggleToolButton)sender).Active = false;
 					}
 				} else {
-					if (UserLogFile != null) {
-						if (UserLogFormat == SerialLogFormat.HTML) {
-							UserLogFile.Write("\n</table></body></html>");
-						}
-						UserLogFile.Close();
-						UserLogFile = null;
-					}
 					((Gtk.ToggleToolButton)sender).Active = false;
 				}
 				Gui.DialogGuardarLog.Hide();
+			} else {
+				if (UserLogFile != null) {
+					if (UserLogFormat == SerialLogFormat.HTML) {
+						UserLogFile.Write("\n</table></body></html>");
+					}
+					UserLogFile.Close();
+					UserLogFile = null;
+				}
+				//((Gtk.ToggleToolButton)sender).Active = false;
 			}
 		}
 
-		void Gui_BtGuardarComando_Clicked (object sender, EventArgs e)
+		void Gui_BtGuardarComando_Clicked(object sender, EventArgs e)
 		{
 			if (Gui.CbTextoEnviado.ActiveText.Length > 0) {
 				Gtk.ResponseType ret = (Gtk.ResponseType)Gui.DialogNombreComando.Run();
@@ -490,7 +506,8 @@ namespace SerialTerminal
 			}
 		}
 
-		enum DockFormat{
+		enum DockFormat
+		{
 			HEADER,
 			ID,
 			NAME,
@@ -501,7 +518,7 @@ namespace SerialTerminal
 		bool ParseDockligthFile(string Filename)
 		{
 			bool ArchivoDockligth = false;
-			DockFormat ParseState=DockFormat.HEADER;
+			DockFormat ParseState = DockFormat.HEADER;
 			List<ComandoSerial> ListaComandosDock = new List<ComandoSerial>();
 			ComandoSerial comando = new ComandoSerial();
 			foreach (string linea in File.ReadLines(Filename)) {
@@ -536,7 +553,7 @@ namespace SerialTerminal
 						if (comando.FindeLinea == FinDeLinea.HEXA) {
 							comando.Comando = linea.Replace(" ", "");
 						} else {
-							comando.Comando = Encoding.GetEncoding(1252).GetString(shb.Value).Replace("\r","").Replace("\n","");
+							comando.Comando = Encoding.GetEncoding(1252).GetString(shb.Value).Replace("\r", "").Replace("\n", "");
 						}
 						ParseState++;
 						ListaComandosDock.Add(comando);
@@ -560,17 +577,17 @@ namespace SerialTerminal
 		}
 		void LoadCommandList(string Filename)
 		{
-			try{
-				if(File.Exists(Filename)){
-					ListaComandos=Newtonsoft.Json.JsonConvert.DeserializeObject<List<ComandoSerial>>(File.ReadAllText(Filename));
+			try {
+				if (File.Exists(Filename)) {
+					ListaComandos = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ComandoSerial>>(File.ReadAllText(Filename));
 				}
-			}catch(Newtonsoft.Json.JsonReaderException){
+			} catch (Newtonsoft.Json.JsonReaderException) {
 				Console.WriteLine("No es archivo Json, sera docklight?");
 				if (!ParseDockligthFile(Filename)) {
-					Gui.PopupMensaje(Gui.MainWindow,MessageType.Error,"Error al leer el archivo de comandos");
+					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Error al leer el archivo de comandos");
 				}
-			}catch(Exception ex){
-				Gui.PopupMensaje(Gui.MainWindow,MessageType.Error,"Error al leer el archivo de comandos", ex.Message);
+			} catch (Exception ex) {
+				Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Error al leer el archivo de comandos", ex.Message);
 			}
 		}
 		void SaveCommandList(string FileName)
@@ -582,15 +599,15 @@ namespace SerialTerminal
 			}
 		}
 
-		void CbTextoEnviadoEntry_Activated (object sender, EventArgs e)
+		void CbTextoEnviadoEntry_Activated(object sender, EventArgs e)
 		{
 			Gui.BtEnviarSerialPort.Click();
 		}
 
 		[GLib.ConnectBefore]
-		void Gui_CbTextoEnviado_KeyPressEvent (object o, KeyPressEventArgs args)
+		void Gui_CbTextoEnviado_KeyPressEvent(object o, KeyPressEventArgs args)
 		{
-			if ((args.Event.Key == Gdk.Key.KP_Enter)||(args.Event.Key == Gdk.Key.Return)) {
+			if ((args.Event.Key == Gdk.Key.KP_Enter) || (args.Event.Key == Gdk.Key.Return)) {
 				Gui.BtEnviarSerialPort.Click();
 			}
 			args.RetVal = true;
@@ -598,10 +615,10 @@ namespace SerialTerminal
 
 		void EnviarTextoSerialPort(string text, FinDeLinea FinLinea)
 		{
-			if ( (text != null)&& (sport!=null) && (sport.IsOpen) ) {
+			if ((text != null) && (sport != null) && (sport.IsOpen)) {
 				lock (sport) {
 					byte[] DataParaEnviar = null;
-					if (FinLinea==FinDeLinea.HEXA) {
+					if (FinLinea == FinDeLinea.HEXA) {
 						try {
 							SoapHexBinary shb = SoapHexBinary.Parse(text);
 							DataParaEnviar = shb.Value;
@@ -612,28 +629,30 @@ namespace SerialTerminal
 					} else {
 						DataParaEnviar = Encoding.ASCII.GetBytes(text);
 					}
-					PrintTimeStamp(DateTime.Now, true);
+					if (AppConfig.AppPrintTimestamp) {
+						PrintTimeStamp(DateTime.Now, true);
+					}
 					ReceiveSerialTextView.AppendTextTag(text);
 					ReceiveSerialTextView.AppendTextTag("\n");
 					sport.BaseStream.Write(DataParaEnviar, 0, DataParaEnviar.Length);
 					WriteSerialLog(Encoding.Default.GetString(DataParaEnviar));
-					if (FinLinea==FinDeLinea.CRLF) {
+					if (FinLinea == FinDeLinea.CRLF) {
 						sport.Write("\r\n");
 						WriteSerialLog("\r\n");
-					} else if (FinLinea==FinDeLinea.CR) {
+					} else if (FinLinea == FinDeLinea.CR) {
 						sport.Write("\r");
 						WriteSerialLog("\r");
-					} else if (FinLinea==FinDeLinea.LF) {
+					} else if (FinLinea == FinDeLinea.LF) {
 						sport.Write("\n");
 						WriteSerialLog("\n");
-					} else if (FinLinea==FinDeLinea.Nada) {
+					} else if (FinLinea == FinDeLinea.Nada) {
 
 					}
 				}
 			}
 		}
 
-		void Gui_BtEnviarSerialPort_Clicked (object sender, EventArgs e)
+		void Gui_BtEnviarSerialPort_Clicked(object sender, EventArgs e)
 		{
 			/*
 			if ( (Gui.CbTextoEnviado.ActiveText != null)&& (sport!=null) && (sport.IsOpen) ) {
@@ -678,7 +697,7 @@ namespace SerialTerminal
 			}
 		}
 
-		void Gui_ToolButtonClearLog_Clicked (object sender, EventArgs e)
+		void Gui_ToolButtonClearLog_Clicked(object sender, EventArgs e)
 		{
 			MessageDialog ms = new MessageDialog(Gui.MainWindow, DialogFlags.Modal, MessageType.Question, ButtonsType.YesNo, "¿Está realmente seguro?");
 			ResponseType ret = (ResponseType)ms.Run();
@@ -692,17 +711,17 @@ namespace SerialTerminal
 			ms.Destroy();
 		}
 
-		void Gui_ComboHandShaking_Changed (object sender, EventArgs e)
+		void Gui_ComboHandShaking_Changed(object sender, EventArgs e)
 		{
 			AppConfig.PortConfig.Handshaking = (UInt32)((ComboBox)sender).Active;
 		}
 
 		Gdk.Color Rojo = new Gdk.Color(255, 0, 0);
 		Gdk.Color Negro = new Gdk.Color(0, 0, 0);
-		void Gui_ComboBaudRate_Changed (object sender, EventArgs e)
+		void Gui_ComboBaudRate_Changed(object sender, EventArgs e)
 		{
 			UInt32 baudrate;
-			Gtk.Entry entry =(Gtk.Entry)((ComboBox)sender).Child;
+			Gtk.Entry entry = (Gtk.Entry)((ComboBox)sender).Child;
 			if (UInt32.TryParse(((ComboBox)sender).ActiveText, out baudrate)) {
 				AppConfig.PortConfig.BaudRate = baudrate;
 				entry.ModifyText(StateType.Normal, Negro);
@@ -711,20 +730,20 @@ namespace SerialTerminal
 			}
 		}
 
-		void CloseSerialPortClicked (object sender, EventArgs e)
+		void CloseSerialPortClicked(object sender, EventArgs e)
 		{
 			if ((sport != null) && (sport.IsOpen == true)) {
 				sport.Close();
-				Gui.ToolBarOpenSerialPort.Sensitive=true;
-				Gui.ToolBarCloseSerialPort.Sensitive=false;
-				sport=null;
+				Gui.ToolBarOpenSerialPort.Sensitive = true;
+				Gui.ToolBarCloseSerialPort.Sensitive = false;
+				sport = null;
 				GLib.Source.Remove(TimerID);
 			}
 		}
 		SerialPort sport;
 		uint TimerID;
 		Int32 WaitMoreBytes;//default
-		void OpenSerialPortClicked (object sender, EventArgs e)
+		void OpenSerialPortClicked(object sender, EventArgs e)
 		{
 			if (sport == null) {
 				int baudrate;
@@ -732,6 +751,10 @@ namespace SerialTerminal
 					sport = new SerialPort(Gui.ComboSelecionaPuerto.ActiveText, baudrate, Parity.None, 8, StopBits.One);
 					sport.Handshake = (Handshake)Gui.ComboHandShaking.Active;
 					AppConfig.PortConfig.PortName = Gui.ComboSelecionaPuerto.ActiveText;
+					double LocalDatosMaximos = 1.0 / ((double)sport.BaudRate / 10);
+					LocalDatosMaximos *= 1000;
+					LocalDatosMaximos = ((double)AppConfig.SerialLookTime) / LocalDatosMaximos;
+					DatosMaximos = (UInt32)LocalDatosMaximos;
 				} else {
 					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, "Baudrate inválido");
 					sport = null;
@@ -739,21 +762,26 @@ namespace SerialTerminal
 				}
 			}
 			if (!sport.IsOpen) {
-				try{
-					sport.Open ();
-				}catch(Exception ex){
+				try {
+					sport.Open();
+				} catch (Exception ex) {
 					Gui.PopupMensaje(Gui.MainWindow, MessageType.Error, ex.Message);
 					sport = null;
 					return;
 				}
 			}
-			Gui.ToolBarOpenSerialPort.Sensitive=false;
-			Gui.ToolBarCloseSerialPort.Sensitive=true;
+			Gui.ToolBarOpenSerialPort.Sensitive = false;
+			Gui.ToolBarCloseSerialPort.Sensitive = true;
 			WaitMoreBytes = (115 * 10) / (sport.BaudRate / 1000);
-			TimerID = GLib.Timeout.Add(Math.Max(AppConfig.SerialLookTime,10), new GLib.TimeoutHandler (SerialDataReceived));
+			if (AppConfig.UseIldeTimer) {
+				TimerID = GLib.Idle.Add(new GLib.IdleHandler(SerialDataReceived));
+			} else {
+				TimerID = GLib.Timeout.Add(Math.Max(AppConfig.SerialLookTime, 10), new GLib.TimeoutHandler(SerialDataReceived));
+			}
+
 		}
 
-		void PrintTimeStamp(DateTime Timestamp,bool Send)
+		void PrintTimeStamp(DateTime Timestamp, bool Send)
 		{
 			if (Send) {
 				ReceiveSerialTextView.AppendTextTag("\n[TX] " + Timestamp.ToString("dd-MM-yy HH:mm:ss.fff") + " -", ReceiveSerialTextView.SubRayado, ReceiveSerialTextView.Negrita, ReceiveSerialTextView.ColorVerdeClaro);
@@ -797,9 +825,9 @@ namespace SerialTerminal
 			if (UserLogFile != null) {
 				if (UserLogFile.BaseStream.CanWrite) {
 					if (UserLogFormat == SerialLogFormat.CSV) {
-						UserLogFile.Write("\""+s.Replace("\"","\"\"")+"\";");
+						UserLogFile.Write("\"" + s.Replace("\"", "\"\"") + "\";");
 					} else if (UserLogFormat == SerialLogFormat.HTML) {
-						UserLogFile.Write("<td><pre>"+s+"</pre></td></tr>");
+						UserLogFile.Write("<td><pre>" + s + "</pre></td></tr>");
 					} else {
 						UserLogFile.Write(s);
 					}
@@ -807,13 +835,29 @@ namespace SerialTerminal
 			}
 
 		}
+
+		void PrintTestBlock(string ElTexto)
+		{
+			ReceiveSerialTextView.AppendTextTag(ElTexto);
+			WriteSerialLog(ElTexto);
+			Gtk.TextIter LastIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(LastMark);
+			string LastTextBlock = ReceiveSerialTextView.OriginalTextView.Buffer.GetText(LastIter, ReceiveSerialTextView.OriginalTextView.Buffer.EndIter, false);
+			ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(LastMark, ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtLine(ReceiveSerialTextView.OriginalTextView.Buffer.LineCount - 1));
+			EscaneaString(LastTextBlock);
+		}
+
 		System.Text.StringBuilder stb = new System.Text.StringBuilder(102400);
 		Gtk.TextMark LastMark;
-		bool PrintCrLfs=false;
+		UInt32 DatosMaximos = 32768;
+		char LastChar = '\0';
 		bool SerialDataReceived()
 		{
-			if(Monitor.TryEnter(sport)) {
+			if (Monitor.TryEnter(sport)) {
+				//Console.WriteLine("In");
 				if (sport.BytesToRead > 0) {
+					//Gui.StatusBar.Pop(0);
+					//Gui.StatusBar.Push(0, string.Format("Bytes in buf {0} b", sport.BytesToRead));
+					UInt32 DatosRecibidos = 0;///para calcular el tiempo basado en el baudrate.
 					DateTime Timestamp = DateTime.Now.AddMilliseconds(-50);
 					ReceiveSerialTextView.DeleteTail();
 					stb.Clear();
@@ -821,38 +865,35 @@ namespace SerialTerminal
 						Monitor.Exit(sport);
 						return false;
 					}
-					PrintTimeStamp(Timestamp, false);
+					if (AppConfig.AppPrintTimestamp && AppConfig.StrictTimestamp || LastChar == '\n') {
+						PrintTimeStamp(Timestamp, false);
+					}
 					//stb.AppendLine();
-					while (sport.BytesToRead > 0) {
-						while (sport.BytesToRead > 0) {
-							int i = sport.ReadByte();
-							if (((i < 32) || (i > 126)) && ((i != 0x0a) && (i != 0x0d))) {
-								stb.AppendFormat("0x{0:X2}", i);
-							} else {
-								char c = (char)i;
-								if (PrintCrLfs) {
-									if (c == '\n') {
-										stb.Append("<LF>");
-									} else if (c == '\r') {
-										stb.Append("<CR>");
-									}
+					int i;
+					while (sport.BytesToRead > 0 && DatosRecibidos < DatosMaximos) {
+						i = sport.ReadByte();
+						DatosRecibidos++;
+						LastChar = (char)i;
+						if (((i < 32) || (i > 126)) && ((i != 0x0a) && (i != 0x0d))) {
+							stb.AppendFormat("0x{0:X2}", i);
+						} else {
+							char c = (char)i;
+							if (c == '\n') {
+								if (AppConfig.PrintCrLfs) {
+									stb.Append("<LF>");
 								}
-								stb.Append(c);
+							} else if (c == '\r') {
+								if (AppConfig.PrintCrLfs) {
+									stb.Append("<CR>");
+								}
 							}
-						}
-						if (!AppConfig.StrictTimestamp) {
-							Thread.Sleep(WaitMoreBytes);///Maybe more?
+							stb.Append(c);
 						}
 					}
-
-					ReceiveSerialTextView.AppendTextTag(stb.ToString());
-					WriteSerialLog(stb.ToString());
-					Gtk.TextIter LastIter = ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtMark(LastMark);
-					string LastTextBlock = ReceiveSerialTextView.OriginalTextView.Buffer.GetText(LastIter, ReceiveSerialTextView.OriginalTextView.Buffer.EndIter,false);
-					ReceiveSerialTextView.OriginalTextView.Buffer.MoveMark(LastMark, ReceiveSerialTextView.OriginalTextView.Buffer.GetIterAtLine(ReceiveSerialTextView.OriginalTextView.Buffer.LineCount-1));
-					EscaneaString(LastTextBlock);
+					PrintTestBlock(stb.ToString());
 				}
 				Monitor.Exit(sport);
+				//Console.WriteLine("Out");
 			}
 			return true;
 		}
@@ -862,10 +903,10 @@ namespace SerialTerminal
 		/// <param name="data">El string</param>
 		void EscaneaString(string data)
 		{
-			
+
 		}
 
-		void ComboSelecionaPuertoHandleChange (object o, EventArgs args)
+		void ComboSelecionaPuertoHandleChange(object o, EventArgs args)
 		{
 			/*if (Gui.ComboSelecionaPuerto.ActiveText.CompareTo("Actualizar Puertos") == 0) {
 				Console.WriteLine("Listando Puertos");
@@ -888,7 +929,7 @@ namespace SerialTerminal
 			Gui.ComboSelecionaPuerto.Changed += ComboSelecionaPuertoHandleChange;*/
 		}
 
-		void MainWindow_delete_event_cb (object o, DeleteEventArgs args)
+		void MainWindow_delete_event_cb(object o, DeleteEventArgs args)
 		{
 			ProgramConfig.SaveProgramConfig(AppConfig);
 			SaveCommandList("ListaComandos.conf");
@@ -901,34 +942,34 @@ namespace SerialTerminal
 	{
 		[System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
 		[return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-		static extern bool SetDllDirectory (string lpPathName);
+		static extern bool SetDllDirectory(string lpPathName);
 
-		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet=System.Runtime.InteropServices.CharSet.Auto)]
+		[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
 		public static extern int MessageBox(IntPtr hWnd, String text, String caption, int options);
 
-		public static bool CheckWindowsGtk ()
+		public static bool CheckWindowsGtk()
 		{
 			string location = null;
 			Version version = null;
-			Version minVersion = new Version (2, 12, 22);
+			Version minVersion = new Version(2, 12, 22);
 
 			using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Xamarin\GtkSharp\InstallFolder")) {
 				if (key != null)
-					location = key.GetValue (null) as string;
+					location = key.GetValue(null) as string;
 			}
-			using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey (@"SOFTWARE\Xamarin\GtkSharp\Version")) {
+			using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Xamarin\GtkSharp\Version")) {
 				if (key != null)
-					Version.TryParse (key.GetValue (null) as string, out version);
+					Version.TryParse(key.GetValue(null) as string, out version);
 			}
 
 			//TODO: check build version of GTK# dlls in GAC
-			if (version == null || version < minVersion || location == null || !File.Exists (Path.Combine (location, "bin", "libgtk-win32-2.0-0.dll"))) {
+			if (version == null || version < minVersion || location == null || !File.Exists(Path.Combine(location, "bin", "libgtk-win32-2.0-0.dll"))) {
 				return false;
 			}
 
-			var path = Path.Combine (location, @"bin");
+			var path = Path.Combine(location, @"bin");
 			try {
-				if (SetDllDirectory (path)) {
+				if (SetDllDirectory(path)) {
 					return true;
 				}
 			} catch (EntryPointNotFoundException) {
@@ -940,14 +981,12 @@ namespace SerialTerminal
 		public static void Get45PlusFromRegistry()
 		{
 			const string subkey = @"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\";
-			using (Microsoft.Win32.RegistryKey ndpKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry32).OpenSubKey(subkey))
-			{
+			using (Microsoft.Win32.RegistryKey ndpKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry32).OpenSubKey(subkey)) {
 				if (ndpKey != null && ndpKey.GetValue("Release") != null) {
-					Console.WriteLine(".NET Framework Version: " + CheckFor45PlusVersion((int) ndpKey.GetValue("Release")));
-				}
-				else {
+					Console.WriteLine(".NET Framework Version: " + CheckFor45PlusVersion((int)ndpKey.GetValue("Release")));
+				} else {
 					Console.WriteLine(".NET Framework Version 4.5 or later is not detected.");
-				} 
+				}
 			}
 		}
 
