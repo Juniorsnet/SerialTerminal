@@ -865,7 +865,7 @@ namespace SerialTerminal
 						Monitor.Exit(sport);
 						return false;
 					}
-					if (AppConfig.AppPrintTimestamp && AppConfig.StrictTimestamp || LastChar == '\n') {
+					if (AppConfig.AppPrintTimestamp && (AppConfig.StrictTimestamp || LastChar == '\n')) {
 						PrintTimeStamp(Timestamp, false);
 					}
 					//stb.AppendLine();

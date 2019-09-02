@@ -243,4 +243,15 @@ using System;
 	{
 		while(Gtk.Application.EventsPending()){Gtk.Application.RunIteration();}
 	}
+
+    public static void ApplicationInvokeSync(System.Action a)
+    {
+        System.Threading.SemaphoreSlim sem = new System.Threading.SemaphoreSlim(1);
+        Gtk.Application.Invoke (delegate {
+            a.Invoke();
+            sem.Release();
+        });
+        sem.Wait();
+    }
+        
 }
